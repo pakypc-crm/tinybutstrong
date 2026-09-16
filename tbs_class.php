@@ -3,8 +3,8 @@
  *
  * TinyButStrong - Template Engine for Pro and Beginners
  *
- * @version 3.15.2 for PHP 5, 7, 8
- * @date    2024-05-08
+ * @version 3.15.3 for PHP 5, 7, 8
+ * @date    2026-04-23
  * @link    http://www.tinybutstrong.com Web site
  * @author  http://www.tinybutstrong.com/onlyyou.html
  * @license http://opensource.org/licenses/LGPL-3.0 LGPL-3.0
@@ -151,15 +151,17 @@ class clsTbsDataSource {
 
 public $Type = false;
 public $SubType = 0;
-/** @var $SrcId mixed */
+/** @var mixed */
 public $SrcId = false;
 public $Query = '';
+/** @var mixed */
 public $RecSet = false;
 public $RecNumInit = 0; // Used by ByPage plugin
 public $RecSaving = false;
 public $RecSaved = false;
+/** @var mixed */
 public $RecBuffer = false;
-/** @var $TBS clsTinyButStrong */
+/** @var object|false */
 public $TBS = false;
 public $OnDataOk = false;
 public $OnDataPrm = false;
@@ -206,7 +208,7 @@ public static $CalcOrders = array(
 //	'uniques'   => 'clsTbsDataSource::DataCalcCount', # todo
 );
 
-// Compatibility with PHP 8.2
+// Compatibility with PHP 8.2 : Creation of dynamic property is deprecated
 public $Prop = array(); // Used by ByPage plugin
 public $RecNbr;
 public $RSIsFirst;
@@ -216,6 +218,10 @@ public $NumStep;
 public $NumVal;
 public $OnDataPrmRef;
 public $OnDataArgs;
+public $FctOpen;
+public $FctFetch; 
+public $FctClose; 
+public $FctPrm = array();
 
 public function DataAlert($Msg) {
 	if (is_array($this->TBS->_CurrBlock)) {
@@ -275,7 +281,7 @@ public function DataPrepare(&$SrcId,&$TBS) {
 		$this->Type = 10;
 	} elseif ($SrcId instanceof PDO) {
 		$this->Type = 11;
-	} elseif ($SrcId instanceof Zend_Db_Adapter_Abstract) {
+	} elseif (is_a($SrcId, 'Zend_Db_Adapter_Abstract')) {
 		$this->Type = 12;
 	} elseif ($SrcId instanceof SQLite3) {
 		$this->Type = 13; $this->SubType = 1;
@@ -1408,7 +1414,7 @@ public $Assigned = array();
 public $ExtendedMethods = array();
 public $ErrCount = 0;
 // Undocumented (can change at any version)
-public $Version = '3.15.0';
+public $Version = '3.15.3';
 public $Charset = '';
 public $TurboBlock = true;
 public $VarPrefix = '';
@@ -2269,11 +2275,11 @@ function meth_Locator_SectionAddGrp(&$LocR,$BlockName,&$BDef,$Type,$Field,$FromP
  * @param string $Txt   The source string to modify.
  * @param object $Loc   The locator of the field to replace.
  * @param mixed  $Value The value to merge with.
- * @param integer|false $SubStart The offset of subname to considere.
+ * @param int|false $SubStart The offset of subname to considere.
  *
- * @return integer The position just after the replaced field. Or the position of the start if the replace is canceled.
- *                 This position can be useful because we don't know in advance how $Value will be replaced.
- *                 $Loc->PosNext is also set to the next search position when embedded fields are allowed.
+ * @return int The position just after the replaced field. Or the position of the start if the replace is canceled.
+ *             This position can be useful because we don't know in advance how $Value will be replaced.
+ *             $Loc->PosNext is also set to the next search position when embedded fields are allowed.
  */
 function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 
@@ -2483,7 +2489,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 			case  6: $CurrVal = ('0'+$CurrVal) + $Loc->OpePrm[$i]; break;
 			case  7: $CurrVal = ('0'+$CurrVal) * $Loc->OpePrm[$i]; break;
 			case  8: $CurrVal = ('0'+$CurrVal) / $Loc->OpePrm[$i]; break;
-			case  9; case 10:
+			case  9: case 10:
 				if ($ope===9) {
 				 $CurrVal = (in_array($this->meth_Misc_ToStr($CurrVal),$Loc->OpeMOK)) ? ' ' : '';
 				} else {
@@ -2722,7 +2728,7 @@ function meth_Locator_Replace(&$Txt,&$Loc,&$Value,$SubStart) {
 /**
  * Return the first block locator just after the PosBeg position
  *
- * @param integer $Mode
+ * @param int     $Mode 
  *                1 : Merge_Auto => doesn't save $Loc->BlockSrc, save the bounds of TBS Def tags instead, return also fields
  *                2 : FindBlockLst or GetBlockSource => save $Loc->BlockSrc without TBS Def tags
  *                3 : GetBlockSource => save $Loc->BlockSrc with TBS Def tags
@@ -2867,7 +2873,7 @@ function meth_Locator_PartAndRename(&$CurrVal, &$PrmLst) {
  *
  * @param string  $Txt
  * @param string  $BlockName
- * @param integer $Pos        
+ * @param int     $Pos        
  * @param string|false $SpePrm The parameter's name for Special section (used for navigation bar), or false if none.
  *
  * @return object
@@ -3932,7 +3938,7 @@ function meth_Merge_FieldOutside(&$Txt, &$CurrRec, $RecNum, $PosMax) {
 /**
  * Check the values of previous and next record for expression.
  *
- * @return boolean
+ * @return bool
  */
 function meth_Merge_CheckBounds($BDef,$Src) {
 		
@@ -4427,7 +4433,6 @@ function meth_Misc_UserFctCheck(&$FctInfo,$FctCat,&$FctObj,&$ErrMsg,$FctCheck=fa
 				}
 			}
 			$FctInfo['type'] = 4;
-			if (isset($this->RecheckObj) && $this->RecheckObj) $Save = false;
 		} else {
 			$FctInfo = array(&$ObjRef,$x);
 		}
@@ -4438,11 +4443,11 @@ function meth_Misc_UserFctCheck(&$FctInfo,$FctCat,&$FctObj,&$ErrMsg,$FctCheck=fa
 		if ($IsObj && method_exists($FctObj,'tbsdb_open') && (!method_exists($FctObj,'+'))) { // '+' avoid a bug in PHP 5
 
 			if (!method_exists($FctObj,'tbsdb_fetch')) {
-				$ErrMsg = 'the expected method \'tbsdb_fetch\' is not found for the class '.$Cls.'.';
+				$ErrMsg = 'the expected method \'tbsdb_fetch\' is not found for the class '.get_class($FctObj).'.';
 				return false;
 			}
 			if (!method_exists($FctObj,'tbsdb_close')) {
-				$ErrMsg = 'the expected method \'tbsdb_close\' is not found for the class '.$Cls.'.';
+				$ErrMsg = 'the expected method \'tbsdb_close\' is not found for the class '.get_class($FctObj).'.';
 				return false;
 			}
 			$FctInfo = array('type'=>5);
@@ -4836,7 +4841,7 @@ static function meth_Misc_ApplyPrmCombo(&$PrmLst, $Loc) {
 				}
 				$PrmLst = array_merge($ap, $PrmLst);
 			} else {
-				$this->meth_Misc_Alert("with parameter 'combo'", "Combo '". $a. "' is not yet set.");
+				$this->meth_Misc_Alert("with parameter 'combo'", "Combo '". $name. "' is not yet set.");
 			}
 		}
 		
@@ -5097,8 +5102,10 @@ static function f_Misc_ParseFctForm($Str) {
 
 /**
  * Check if a string condition is true.
+ * 
  * @param  string  $Str The condition to check.
- * @return boolean True if the condition if checked.
+ * 
+ * @return bool True if the condition if checked.
  */
 static function f_Misc_CheckCondition($Str) {
 // Check if an expression like "exrp1=expr2" is true or false.
@@ -5195,9 +5202,11 @@ static function f_Misc_CheckCondition($Str) {
 
 /**
  * Delete the string delimiters that surrounds the string, if any. But not inside (no need).
+ * 
  * @param  string $Txt    The string to modifiy.
  * @param  string $Delim  The character that can delimit the string.
- * @return boolean True if the given string was not delimited with $Delim.
+ * 
+ * @return bool True if the given string was not delimited with $Delim.
  */
 static function f_Misc_DelDelimiter(&$Txt,$Delim) {
 // Delete the string delimiters
@@ -5457,9 +5466,9 @@ static function f_Loc_PrmCompute(&$Txt,&$Loc,&$SubName,$Status,$XmlTag,$DelimChr
  * Add a new parameter 'if or 'then' to the locator.
  * 
  * @param object  $Loc     The locator.
- * @param boolean $IsIf    Concerned parameter. True means 'if', false means 'then'.
+ * @param bool    $IsIf    Concerned parameter. True means 'if', false means 'then'.
  * @param string  $Val     The value of the parameter.
- * @param boolean $Ordered True means the parameter comes from the template and order must be checked. False means it comes from PHP and order is free.
+ * @param bool    $Ordered True means the parameter comes from the template and order must be checked. False means it comes from PHP and order is free.
  *
  */
 static function f_Loc_PrmIfThen(&$Loc, $IsIf, $Val, $Ordered) {
@@ -5713,10 +5722,12 @@ static function f_Loc_Moving(&$LocM, &$LocLst) {
 /**
  * Sort the locators in the list. Apply the bubble algorithm.
  * Deleted locators maked with DelMe.
- * @param array   $LocLst An array of locators.
- * @param boolean $DelEmbd True to deleted locators that embded other ones.
- * @param boolean $iFirst Index of the first item.
- * @return integer Return the number of met embedding locators.
+ * 
+ * @param array    $LocLst An array of locators.
+ * @param bool     $DelEmbd True to deleted locators that embded other ones.
+ * @param bool     $iFirst Index of the first item.
+ * 
+ * @return int Return the number of met embedding locators.
  */
 static function f_Loc_Sort(&$LocLst, $DelEmbd, $iFirst = 0) {
 
