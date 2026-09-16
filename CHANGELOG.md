@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [3.15.3] - 2026-04-23
+
+### Fixed
+
+- PHP 8.5 compatibility improved
+          - Deprecated: Case statements followed by a semicolon (;) are deprecated.
+          - Creation of dynamic property is deprecated
+
 ## [3.15.2] - 2024-05-08
 
 ### Fixed
